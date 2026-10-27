@@ -18,6 +18,7 @@ INCLUDE_CENTRE    whether the value at the kiln itself is used (first ring only)
 Outputs (named after the raster, so different rasters don't overwrite each other)
 -------
 <raster>_rings.csv       one row per kiln: mean, median, n, valid share per ring
+<raster>_summary.csv     overview across all kilns per ring (count, median, mean, std, ...)
 <raster>_samples.gpkg    every single sample as a point (open in QGIS to check)
 <raster>_samples.csv     the same samples as a table
 
@@ -40,21 +41,22 @@ import rasterio
 # =============================================================================
 # SETTINGS
 # =============================================================================
-GPKG = "kohlmeiler_2056_1.gpkg"     # kiln points
+GPKG = "kohlmeiler_2056.gpkg"     # kiln points
 ID_COLUMN = "ID_PAROLINI"           # column that identifies each kiln
-TIF = "metriche_z_raster_1.tiff"    # raster to analyse (or give it on the command line)
+TIF = "merged_dem.tif"              # raster to analyse (or give it on the command line)
 BAND = 1                            # band number (or give it on the command line)
 
 # Rings (inner, outer) in metres, from inside to outside.
 # Rule: inner < distance <= outer. The centre (distance 0) only counts in the
 # first ring, and only if INCLUDE_CENTRE = True.
-RINGS = [(0, 5), (5, 10), (10, 20), (20, 50)]
+RINGS = [(0, 6), (6, 12), (12, 18), (18, 24)]
 
-N_RAYS = 8               # number of directions, evenly spread over 360°
-STEP = 1.0               # spacing of samples along each ray, in metres
-WEIGHTED = True          # True: weight by distance (area-correct); False: all samples equal
-INCLUDE_CENTRE = True    # True: the value at the kiln itself is part of the first ring
+N_RAYS = 16               # number of directions, evenly spread over 360°
+STEP = 1               # spacing of samples along each ray, in metres
+WEIGHTED = False         # True: weight by distance (area-correct); False: all samples equal
+INCLUDE_CENTRE = False    # True: the value at the kiln itself is part of the first ring
 MIN_VALID = 0.9          # ring is left empty if less than this share of samples has data
+SUMMARY_OF = "mean"      # which per-kiln ring value the overview across kilns uses: "mean" or "median"
 
 # Command line overrides: python kiln_ring_analysis.py <tif> [band]
 if len(sys.argv) > 1:
@@ -258,23 +260,39 @@ result = pd.DataFrame(rows).set_index("kiln_id")
 # STEP 6: Save and summarise
 # =============================================================================
 result_csv = f"{OUT_PREFIX}_rings.csv"
+summary_csv = f"{OUT_PREFIX}_summary.csv"
 samples_csv = f"{OUT_PREFIX}_samples.csv"
 samples_gpkg = f"{OUT_PREFIX}_samples.gpkg"
 
+mean_cols = [f"mean_{a}_{b}" for a, b in RINGS]
+value_cols = [f"{SUMMARY_OF}_{a}_{b}" for a, b in RINGS]
+
+# Overview across all kilns: each kiln contributes ONE value per ring
+# (its ring mean, or its ring median if SUMMARY_OF = "median").
+# Note: "median" and "50%" are the same number; both are kept for readability.
+values = result[value_cols]
+summary = pd.DataFrame({
+    "count":  values.count(),
+    "median": values.median(),
+    "mean":   values.mean(),
+    "std":    values.std(),
+    "min":    values.min(),
+    "25%":    values.quantile(0.25),
+    "50%":    values.quantile(0.50),
+    "75%":    values.quantile(0.75),
+    "max":    values.max(),
+}).T
+summary.columns = [f"{a}-{b} m" for a, b in RINGS]
+
 result.to_csv(result_csv)
+summary.to_csv(summary_csv)
 samples.to_csv(samples_csv, index=False)
 gpd.GeoDataFrame(samples, geometry=gpd.points_from_xy(samples["x"], samples["y"]),
                  crs=raster_crs).to_file(samples_gpkg, layer="samples")
 
-mean_cols = [f"mean_{a}_{b}" for a, b in RINGS]
-median_cols = [f"median_{a}_{b}" for a, b in RINGS]
-
-print("\nRing means per kiln (first rows):")
-print(result[mean_cols].round(2).head(10))
-print("\nAcross all kilns - means:")
-print(result[mean_cols].describe().round(2))
-print("\nAcross all kilns - medians:")
-print(result[median_cols].describe().round(2))
+print(f"\nOverview across all kilns (each kiln = one ring {SUMMARY_OF}, "
+      f"{'weighted' if WEIGHTED else 'unweighted'}):")
+print(summary.round(2))
 
 empty = result[mean_cols].isna()
 if empty.any().any():
@@ -285,5 +303,6 @@ if empty.any().any():
             print(f"   {col}: kilns {ids}")
 
 print(f"\nSaved: {result_csv}  (one row per kiln)")
+print(f"       {summary_csv}  (overview across all kilns)")
 print(f"       {samples_csv}  ({len(samples)} samples)")
 print(f"       {samples_gpkg}  (same samples as points for QGIS)")
