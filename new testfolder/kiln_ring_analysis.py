@@ -51,10 +51,10 @@ BAND = 1                            # band number (or give it on the command lin
 # first ring, and only if INCLUDE_CENTRE = True.
 RINGS = [(0, 6), (6, 12), (12, 18), (18, 24)]
 
-N_RAYS = 16               # number of directions, evenly spread over 360°
+N_RAYS = 16              # number of directions, evenly spread over 360°
 STEP = 1               # spacing of samples along each ray, in metres
 WEIGHTED = False         # True: weight by distance (area-correct); False: all samples equal
-INCLUDE_CENTRE = False    # True: the value at the kiln itself is part of the first ring
+INCLUDE_CENTRE = False   # True: the value at the kiln itself is part of the first ring
 MIN_VALID = 0.9          # ring is left empty if less than this share of samples has data
 SUMMARY_OF = "mean"      # which per-kiln ring value the overview across kilns uses: "mean" or "median"
 
