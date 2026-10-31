@@ -24,7 +24,7 @@ Outputs (named after the raster, so different rasters don't overwrite each other
  
 Usage in a notebook
 -------------------
-    from kiln_ring_analysis import kiln_ring_analysis
+    from kiln_ring_analysis_function import kiln_ring_analysis
  
     params = {
         "gpkg": "kohlmeiler_2056.gpkg",
@@ -48,6 +48,7 @@ Usage from the command line
 pip install geopandas rasterio numpy pandas
 """
 import sys
+import re
 from pathlib import Path
  
 import numpy as np
@@ -76,8 +77,9 @@ DEFAULTS = {
     "min_valid": 0.9,         # ring is left empty if less than this share of samples has data
     "summary_of": "mean",     # per-kiln ring value used in the overview: "mean" or "median"
  
-    "out_dir": ".",           # folder for the output files
+    "out_dir": "results",     # parent folder; each run gets its own subfolder in here
     "out_prefix": None,       # None -> name of the raster without extension
+    "comment": None,          # optional text appended to the subfolder name
     "save": True,             # write the output files
     "verbose": True,          # print the overview
 }
@@ -91,8 +93,20 @@ def _check_rings(rings):
     for (in_a, out_a), (in_b, out_b) in zip(rings, rings[1:]):
         if in_b < out_a:
             raise ValueError(f"Rings overlap: ({in_a}, {out_a}) and ({in_b}, {out_b})")
- 
- 
+
+def _run_folder_name(tif, n_rays, step, rings, comment):
+    """Folder name from the parameters, e.g. merged_dem_rays16_step1_ring6x4_mycomment."""
+    widths = {b - a for a, b in rings}
+    contiguous = all(r1[0] == r0[1] for r0, r1 in zip(rings, rings[1:]))
+    if rings[0][0] == 0 and contiguous and len(widths) == 1:
+        ring_part = f"ring{widths.pop():g}x{len(rings)}"            # equal rings: width x count
+    else:
+        ring_part = "rings" + "_".join(f"{a:g}-{b:g}" for a, b in rings)  # otherwise list them
+    name = f"{Path(tif).stem}_rays{n_rays}_step{step:g}_{ring_part}"
+    if comment:
+        name += "_" + re.sub(r"[^\w-]+", "-", str(comment)).strip("-")  # spaces etc. -> "-"
+    return name
+
 def _sampling_design(rings, n_rays, step, include_centre, weighted):
     """
     One entry per sample (the same for every kiln): which ray, which direction,
@@ -335,7 +349,7 @@ def kiln_ring_analysis(params=None):
     # --- Step 7: save ----------------------------------------------------------
     files = {}
     if p["save"]:
-        out_dir = Path(p["out_dir"])
+        out_dir = Path(p["out_dir"]) / _run_folder_name(tif, n_rays, step, rings, p["comment"])
         out_dir.mkdir(parents=True, exist_ok=True)
         files = {
             "rings":        out_dir / f"{out_prefix}_rings.csv",
