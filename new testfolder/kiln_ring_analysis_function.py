@@ -198,7 +198,8 @@ def kiln_ring_analysis(params=None):
     weighted, include_centre = p["weighted"], p["include_centre"]
     min_valid, summary_of = p["min_valid"], p["summary_of"]
     verbose = p["verbose"]
-    out_prefix = p["out_prefix"] or Path(tif).stem
+    suffix = "_controls" if Path(gpkg).name == "controls_2056.gpkg" else ""
+    out_prefix = (p["out_prefix"] or Path(tif).stem) + suffix
  
     if summary_of not in ("mean", "median"):
         raise ValueError(f"summary_of must be 'mean' or 'median', not {summary_of!r}")
@@ -349,7 +350,7 @@ def kiln_ring_analysis(params=None):
     # --- Step 7: save ----------------------------------------------------------
     files = {}
     if p["save"]:
-        out_dir = Path(p["out_dir"]) / _run_folder_name(tif, n_rays, step, rings, p["comment"])
+        out_dir = Path(p["out_dir"]) / (_run_folder_name(tif, n_rays, step, rings, p["comment"]) + suffix)
         out_dir.mkdir(parents=True, exist_ok=True)
         files = {
             "rings":        out_dir / f"{out_prefix}_rings.csv",
