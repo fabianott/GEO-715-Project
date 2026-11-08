@@ -161,11 +161,11 @@ def kiln_semivariogram(params=None):
     return sv
  
  
-def plot_semivariogram(sv, ax=None, label=None, color=None, xlim=None, ylim=None):
+def plot_semivariogram(sv, ax=None, label=None, color=None, xlim=None, ylim=None, markersize=1.5, lw=0.7):
     import matplotlib.pyplot as plt
     if ax is None:
         _, ax = plt.subplots(figsize=(6, 4))
-    ax.plot(sv["lag"], sv["gamma"], marker="o", markersize=3, color=color, label=label)
+    ax.plot(sv["lag"], sv["gamma"], marker="o", markersize=markersize, lw=lw, color=color, label=label)
     ax.set_xlabel("Distance between pixels (m)")
     ax.set_ylabel("Semivariance (m²)")
     ax.set_xlim(0, xlim)
@@ -304,17 +304,17 @@ def _subset(site, group_ids):
 # =============================================================================
 # BOOTSTRAP PLOT
 # =============================================================================
-def plot_band(bs, ax=None, label=None, color=None):
+def plot_band(bs, ax=None, label=None, color=None, markersize=1.5, lw=0.7):
     """Curve with its shaded confidence band (works for both outputs)."""
     import matplotlib.pyplot as plt
     if ax is None:
         _, ax = plt.subplots(figsize=(6, 4))
     y = "ratio" if "ratio" in bs else "gamma"
     ax.fill_between(bs["lag"], bs["low"], bs["high"], color=color, alpha=0.25, lw=0)
-    ax.plot(bs["lag"], bs[y], marker="o", markersize=3, color=color, label=label)
+    ax.plot(bs["lag"], bs[y], marker="o", markersize=markersize, lw=lw, color=color, label=label)
     ax.set_xlabel("Distance between pixels (m)")
     if y == "ratio":
-        ax.axhline(1, color="0.5", lw=1, ls="--")
+        ax.axhline(1, color="0.5", lw=lw, ls="--")
         ax.set_ylabel("Semivariance ratio kiln / control")
     else:
         ax.set_ylabel("Semivariance (m²)")
