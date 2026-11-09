@@ -198,9 +198,10 @@ def kiln_ring_analysis(params=None):
     weighted, include_centre = p["weighted"], p["include_centre"]
     min_valid, summary_of = p["min_valid"], p["summary_of"]
     verbose = p["verbose"]
-    suffix = "_controls" if Path(gpkg).name == "controls_2056.gpkg" else ""
+    stem = Path(gpkg).stem
+    suffix = ("_controls" if stem.startswith("controls") else "") + \
+             ("_reduced" if stem.endswith("_reduced") else "")
     out_prefix = (p["out_prefix"] or Path(tif).stem) + suffix
- 
     if summary_of not in ("mean", "median"):
         raise ValueError(f"summary_of must be 'mean' or 'median', not {summary_of!r}")
  
