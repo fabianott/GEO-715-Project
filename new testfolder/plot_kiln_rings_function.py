@@ -45,7 +45,7 @@ DEFAULTS = {
     "rings_csv": "merged_dem_rings.csv",  # output of kiln_ring_analysis.py
     "value": "mean",                      # plot the ring "mean" or "median" of each kiln
     "y_label": "Canopy height (m)",       # unit of the raster values
-    "color": "#2f6db3",                   # one colour for the highlighted data
+    "color": "#23794A",                   # one colour for the highlighted data
     "out_png": None,                      # None -> <csv stem>_<value>_plot.png next to the csv
     "save": True,                         # write the PNG
     "dpi": 200,
@@ -54,6 +54,17 @@ DEFAULTS = {
     "seed": 0,                            # fixed seed: dots don't jump between runs
 }
 
+plt.rcParams.update({
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Helvetica", "Arial", "DejaVu Sans"],
+    "pdf.fonttype": 42,
+    "font.size": 12,
+    "axes.labelsize": 12,
+    "axes.titlesize": 12,
+    "xtick.labelsize": 11,
+    "ytick.labelsize": 11,
+    "legend.fontsize": 11,
+})
 
 # =============================================================================
 # HELPERS
@@ -87,8 +98,7 @@ def _box_with_dots(ax, data, positions, color, rng):
                capprops=dict(color="0.35"))
     for pos, v in zip(positions, cols):
         jitter = rng.uniform(-0.15, 0.15, v.size)
-        ax.scatter(pos + jitter, v, s=14, color=color, alpha=0.45,
-                   edgecolor="white", linewidth=0.5, zorder=3)
+        ax.scatter(pos + jitter, v, s=14, color=color, alpha=0.45, zorder=3, linewidths=0)
     ax.set_xticks(positions, data.columns)
 
 
@@ -126,8 +136,8 @@ def plot_kiln_rings(params=None):
     df, rings, labels, values = _read_rings(rings_csv, value)
     midpoints = np.array([(a + b) / 2 for a, b, _ in rings])
 
-    print(f"{len(df)} kilns, rings: {', '.join(labels)}")
-    print(f"Kilns with at least one empty ring: {values.isna().any(axis=1).sum()}")
+    print(f"{len(df)} RCM, rings: {', '.join(labels)}")
+    print(f"RCMs with at least one empty ring: {values.isna().any(axis=1).sum()}")
 
     # --- Step 2: figure with three panels ------------------------------------
     fig, (ax_a, ax_b, ax_c) = plt.subplots(1, 3, figsize=p["figsize"])
@@ -135,7 +145,7 @@ def plot_kiln_rings(params=None):
 
     # A: distribution across kilns per ring
     _box_with_dots(ax_a, values, np.arange(len(labels)), color, rng)
-    ax_a.set_title(f"A  Ring {value} across kilns", loc="left", fontweight="bold")
+    ax_a.set_title(f"A  Ring {value} across RCMs", loc="left")
     ax_a.set_xlabel("Ring")
     ax_a.set_ylabel(y_label)
 
@@ -146,15 +156,14 @@ def plot_kiln_rings(params=None):
     q50 = values.median().to_numpy()
     q75 = values.quantile(0.75).to_numpy()
     ax_b.fill_between(midpoints, q25, q75, color=color, alpha=0.18, linewidth=0,
-                      label="25-75 % of kilns")
-    ax_b.plot(midpoints, q50, color=color, linewidth=2.5, marker="o", markersize=7,
-              markeredgecolor="white", label="Median of kilns")
-    ax_b.plot([], [], color="0.6", linewidth=0.7, label="Single kiln")
+                      label="25-75 % of RCMs")
+    ax_b.plot(midpoints, q50, color=color, linewidth=2.5, marker="o", markersize=7, label="Median of RCMs")
+    ax_b.plot([], [], color="0.6", linewidth=0.7, label="Single RCM")
     for _, b, _ in rings:                         # ring limits as light vertical lines
         ax_b.axvline(b, color="0.85", linewidth=0.8, zorder=0)
     ax_b.set_xlim(0, rings[-1][1])
-    ax_b.set_title("B  Profile with distance from kiln", loc="left", fontweight="bold")
-    ax_b.set_xlabel("Distance from kiln (m), points at ring centres")
+    ax_b.set_title("B  Profile with distance from RCM", loc="left")
+    ax_b.set_xlabel("Distance from RCM (m), points at ring centres")
     ax_b.set_ylabel(y_label)
     ax_b.legend(frameon=False, loc="best")
 
@@ -165,9 +174,9 @@ def plot_kiln_rings(params=None):
     if diff.shape[1] > 0:
         _box_with_dots(ax_c, diff, np.arange(diff.shape[1]), color, rng)
     ax_c.axhline(0, color="0.2", linewidth=1)
-    ax_c.set_title(f"C  Difference to the {first} ring", loc="left", fontweight="bold")
+    ax_c.set_title(f"C  Difference to the {first} ring", loc="left")
     ax_c.set_ylabel(f"Difference in {y_label[0].lower() + y_label[1:]}")
-    ax_c.text(0.01, 0.99, "above 0: higher than at the kiln\nbelow 0: lower than at the kiln",
+    ax_c.text(0.01, 0.99, "above 0: higher than at the RCM\nbelow 0: lower than at the RCM",
               transform=ax_c.transAxes, va="top", fontsize=8, color="0.35")
 
     # Common styling: light grid, no top/right frame
@@ -176,7 +185,7 @@ def plot_kiln_rings(params=None):
         ax.set_axisbelow(True)
         ax.spines[["top", "right"]].set_visible(False)
 
-    fig.suptitle(f"{Path(rings_csv).stem}  -  {len(df)} kilns, ring {value}s", x=0.01,
+    fig.suptitle(f"{Path(rings_csv).stem}  -  {len(df)} RCM, ring {value}s", x=0.01,
                  ha="left", fontsize=12)
     fig.tight_layout()
 

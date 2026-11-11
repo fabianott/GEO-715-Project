@@ -315,7 +315,7 @@ def plot_band(bs, ax=None, label=None, color=None, markersize=1.5, lw=0.7):
     ax.set_xlabel("Distance between pixels (m)")
     if y == "ratio":
         ax.axhline(1, color="0.5", lw=lw, ls="--")
-        ax.set_ylabel("Semivariance ratio kiln / control")
+        ax.set_ylabel("Semivariance ratio RCM / control")
     else:
         ax.set_ylabel("Semivariance (m²)")
         ax.set_ylim(0, None)
